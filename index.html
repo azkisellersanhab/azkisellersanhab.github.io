@@ -373,7 +373,7 @@ body.noauth .login-modal .lf.open,body.noauth .login-modal .lf:first-of-type{z-i
 body.noauth #savedLogins{z-index:30}
 </style>
 </head>
-<body class="noauth">
+<body>
 <div class="container">
 <div class="top">
 <h2><img id="hdrLogo" alt="" width="30" height="30"><span class="ttl">سنهاب مرکزی سلر</span></h2>
@@ -494,7 +494,7 @@ var DCOLS=[
 {title:"سرنشین",cls:"disc-col",html:function(p){return disc(p.discountPersonPercent,p.discountPersonYears);}}
 ];
 var TAB_TITLES={motor:"موتور",chassis:"شاسی",vin:"VIN",car:"پلاک خودرو",bike:"پلاک موتورسیکلت",national:"کد ملی"};
-var currentTab="motor";
+var currentTab="motor",resultTab="motor",_authBusy=false,_tabInit=false;
 var resultsByTab={motor:[],chassis:[],vin:[],car:[],bike:[],national:[]};
 var lastList=[];
 var KEYFA={policyUniqueCode:"کد یکتا",lastCompanyDocNo:"شماره بیمه قبلی",companyName:"شرکت",licensePlateNo:"پلاک",motorNo:"شماره موتور",chassisNo:"شماره شاسی",vin:"VIN",startDate:"تاریخ شروع",endDate:"تاریخ پایان",issueDate:"تاریخ صدور",discountFinancialYears:"سال تخفیف ثالث",discountFinancialPercent:"درصد تخفیف ثالث",discountPersonYears:"سال تخفیف سرنشین",discountPersonPercent:"درصد تخفیف سرنشین",endorsements:"الحاقیه‌ها",endorsementType:"نوع الحاقیه",endorsementCompanyDocNo:"شماره سند الحاقیه",losses:"خسارت‌ها",lossType:"نوع خسارت",accidentDate:"تاریخ حادثه",paymentDate:"تاریخ پرداخت",lossCompanyDocNo:"شماره سند خسارت",paidAmount:"مبلغ پرداختی",discountLossYears:"سال تخفیف خسارت",discountLossPercent:"درصد تخفیف خسارت",insuredName:"بیمه گذار",productionYear:"سال ساخت",printedCompanyDocNo:"شماره بیمه",policyType:"نوع بیمه نامه",vehicleName:"وسیله نقلیه",nationalCode:"کد ملی بیمه گذار",usageName:"کاربری"};
@@ -757,11 +757,11 @@ if(!lastList||!lastList.length){showToast("ردیفی برای دانلود وج
 var btn=document.getElementById("dlBtn");if(btn)btn.disabled=true;
 try{
 if(document.fonts&&document.fonts.load){await Promise.all([document.fonts.load("400 10px Vazirmatn","آ1A"),document.fonts.load("700 10px Vazirmatn","آ1A")]);}
-var meta=resultsMeta[currentTab]||null;
+var meta=resultsMeta[resultTab]||null;
 var pages=pdfRender(lastList,meta),jpgs=[];
 for(var i=0;i<pages.length;i++){jpgs.push({bytes:await canvasJpeg(pages[i].c),w:pages[i].c.width,h:pages[i].c.height});}
 var blob=buildPdf(jpgs,PDFC.W,PDFC.H);
-var nm=["استعلام_سنهاب",meta&&meta.value?meta.value:TAB_TITLES[currentTab],meta&&meta.date?meta.date.replace(/\//g,"-"):""].filter(Boolean).join("_").replace(/[\\\/:*?"<>|\s]+/g,"_")+".pdf";
+var nm=["استعلام_سنهاب",meta&&meta.value?meta.value:TAB_TITLES[resultTab],meta&&meta.date?meta.date.replace(/\//g,"-"):""].filter(Boolean).join("_").replace(/[\\\/:*?"<>|\s]+/g,"_")+".pdf";
 var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nm;document.body.appendChild(a);a.click();
 setTimeout(function(){URL.revokeObjectURL(a.href);if(a.parentNode)a.parentNode.removeChild(a);},4000);
 showToast("فایل PDF دانلود شد.");
@@ -836,7 +836,7 @@ var badge=$("userBadge"),lb=$("loginBtn"),lo=$("logoutBtn");
 if(sbAccessToken&&sbEmail){badge.textContent=sbEmail;lb.style.display="none";lo.style.display="";}
 else if(sbAccessToken){badge.textContent="وارد شده‌اید";lb.style.display="none";lo.style.display="";}
 else{badge.textContent="وارد نشده‌اید";lb.style.display="";lo.style.display="none";}
-document.body.classList.toggle("noauth",!sbAccessToken);
+document.body.classList.toggle("noauth",!sbAccessToken&&!_authBusy);
 var sb=$("sessBadge");
 if(sb){var l=(sbAccessToken||centralToken)?msLeft():Infinity;var _cl=(centralToken&&centralExp)?centralExp-Date.now():Infinity,_sl=(sbAccessToken&&sbExp)?sbExp-Date.now():Infinity,_cen=_cl<=_sl;
 if(l===Infinity||l>=SESSION_WARN_MS){sb.style.display="none";}
@@ -891,12 +891,12 @@ centralToken=v;centralExp=jwtExp(v);_lastCentralRead=Date.now();
 return v;
 }
 var _render0=render;render=function(list){_render0(list);fitCols();};
-function updateTabLabels(){var btns=document.querySelectorAll("#tabs button");for(var i=0;i<btns.length;i++){var k=btns[i].getAttribute("data-tab");var n=(resultsByTab[k]||[]).length;btns[i].textContent=n>0?TAB_TITLES[k]+" ("+faNum(n)+")":TAB_TITLES[k];}}
-function render(list){var body=$("body"),count=$("count");list=list||[];lastList=list;var _db=$("dlBtn");if(_db)_db.style.display=list.length?"":"none";count.textContent="تب "+TAB_TITLES[currentTab]+" — تعداد رکورد: "+faNum(list.length);if(!list.length){body.innerHTML='<div class="empty">'+(resultsMeta[currentTab]?'نتیجه‌ای برای این استعلام پیدا نشد.':'هنوز استعلامی در این تب انجام نشده است.')+'</div>';updateTabLabels();return;}var CW=colWidths();var h='<table><colgroup>';for(var q=0;q<CW.cols.length;q++)h+='<col style="width:'+(CW.cols[q]*100/CW.total).toFixed(3)+'%">';h+="</colgroup><thead><tr>";for(var i=0;i<DCOLS.length;i++)h+="<th"+(DCOLS[i].cls?' class="'+DCOLS[i].cls+'"':"")+">"+esc(DCOLS[i].title)+"</th>";h+='<th class="arr-col"></th></tr></thead><tbody>';for(var r=0;r<list.length;r++){var p=list[r];var ends0=Array.isArray(p.endorsements)?p.endorsements:[];var loss0=Array.isArray(p.losses)?p.losses:[];var z=(r%2?"z2":"z1");h+='<tr class="rec '+z+((ends0.length||loss0.length)?" has-sum":"")+'">';for(var c=0;c<DCOLS.length;c++){h+="<td"+(DCOLS[c].cls?' class="'+DCOLS[c].cls+'"':"")+">"+DCOLS[c].html(p)+"</td>";}h+='<td class="arr-col"><button type="button" class="row-arr-btn" data-idx="'+r+'" title="نمایش همه اطلاعات" aria-label="نمایش همه اطلاعات"><i class="row-arr"></i></button></td></tr>';var ends=Array.isArray(p.endorsements)?p.endorsements:[];var losses=Array.isArray(p.losses)?p.losses:[];if(ends.length||losses.length){var lbl=[];if(ends.length)lbl.push('الحاقیه'+(ends.length>1?' '+faNum(ends.length):''));if(losses.length)lbl.push('خسارت'+(losses.length>1?' '+faNum(losses.length):''));var barCls='sum-bar'+(ends.length&&losses.length?' both':ends.length?' endo':' loss');h+='<tr class="sum-row '+z+'"><td colspan="'+(DCOLS.length+1)+'"><button type="button" class="'+barCls+'" data-sum="'+r+'"><span class="sum-lbl">'+lbl.join(' · ')+' <span class="sum-arrow">▾</span></span></button></td></tr>';h+='<tr class="sum-detail" id="sumDetail'+r+'" style="display:none"><td colspan="'+(DCOLS.length+1)+'">';for(var e=0;e<ends.length;e++){if(!ends[e])continue;h+='<div class="endo-block"><div class="endo-chips"><span class="endo-tag">🔶 الحاقیه</span><span class="endo-item"><b>نوع:</b> '+esc(fmt(ends[e].endorsementType))+'</span><span class="endo-item"><b>پلاک:</b> '+esc(fmt(ends[e].licensePlateNo))+'</span><span class="endo-item"><b>سند:</b> '+esc(fmt(ends[e].endorsementCompanyDocNo))+'</span></div></div>';}for(var l=0;l<losses.length;l++){if(!losses[l])continue;h+='<div class="loss-block"><div class="loss-chips"><span class="loss-tag">🔴 خسارت '+esc(fmt(losses[l].lossType))+'</span><span class="loss-item"><b>تاریخ حادثه:</b> '+esc(fmt(losses[l].accidentDate))+'</span><span class="loss-item"><b>تاریخ پرداخت:</b> '+esc(fmt(losses[l].paymentDate))+'</span><span class="loss-item"><b>سند:</b> '+esc(fmt(losses[l].lossCompanyDocNo))+'</span><span class="loss-item"><b>مبلغ:</b> '+esc(fmtAmt(losses[l].paidAmount))+'</span></div></div>';}h+='</td></tr>';}}h+="</tbody></table>";body.innerHTML=h;updateTabLabels();}
-function switchTab(name){if(!TAB_TITLES[name])return;currentTab=name;var btns=document.querySelectorAll("#tabs button");for(var i=0;i<btns.length;i++){btns[i].classList.toggle("active",btns[i].getAttribute("data-tab")===name);}var panels=document.querySelectorAll(".tab-panel");for(var j=0;j<panels.length;j++){panels[j].classList.toggle("active",panels[j].id==="panel-"+name);}$("status").textContent="تب "+TAB_TITLES[name]+" — آماده.";render(resultsByTab[name]||[]);try{localStorage.setItem("sanhabCurrentTab",name);}catch(e){}}
-function persist(){try{sessionStorage.setItem("sanhabTs",String(Date.now()));sessionStorage.setItem("sanhabTabResults",JSON.stringify(resultsByTab));sessionStorage.setItem("sanhabTabMeta",JSON.stringify(resultsMeta));sessionStorage.setItem("sanhabInputs",JSON.stringify({motor:$("motorInput").value,chassis:$("chassisInput").value,vin:$("vinInput").value,plateLeft:$("plateLeft").value,plateMid:$("plateMid").value,plateRight:$("plateRight").value,plateSeri:$("plateSeri").value,bikeSeri:$("bikeSeri").value,bikeNumber:$("bikeNumber").value,national:$("nationalInput").value}));}catch(e){}}
+function updateTabLabels(){var btns=document.querySelectorAll("#tabs button");for(var i=0;i<btns.length;i++){var k=btns[i].getAttribute("data-tab");btns[i].textContent=TAB_TITLES[k];}}
+function render(list){var body=$("body"),count=$("count");list=list||[];lastList=list;var _db=$("dlBtn");if(_db)_db.style.display=list.length?"":"none";count.textContent=(list.length||resultsMeta[resultTab]?"نتیجه استعلام "+TAB_TITLES[resultTab]+" — ":"")+"تعداد رکورد: "+faNum(list.length);if(!list.length){body.innerHTML='<div class="empty">'+(resultsMeta[resultTab]?'نتیجه‌ای برای این استعلام پیدا نشد.':'هنوز استعلامی انجام نشده است.')+'</div>';updateTabLabels();return;}var CW=colWidths();var h='<table><colgroup>';for(var q=0;q<CW.cols.length;q++)h+='<col style="width:'+(CW.cols[q]*100/CW.total).toFixed(3)+'%">';h+="</colgroup><thead><tr>";for(var i=0;i<DCOLS.length;i++)h+="<th"+(DCOLS[i].cls?' class="'+DCOLS[i].cls+'"':"")+">"+esc(DCOLS[i].title)+"</th>";h+='<th class="arr-col"></th></tr></thead><tbody>';for(var r=0;r<list.length;r++){var p=list[r];var ends0=Array.isArray(p.endorsements)?p.endorsements:[];var loss0=Array.isArray(p.losses)?p.losses:[];var z=(r%2?"z2":"z1");h+='<tr class="rec '+z+((ends0.length||loss0.length)?" has-sum":"")+'">';for(var c=0;c<DCOLS.length;c++){h+="<td"+(DCOLS[c].cls?' class="'+DCOLS[c].cls+'"':"")+">"+DCOLS[c].html(p)+"</td>";}h+='<td class="arr-col"><button type="button" class="row-arr-btn" data-idx="'+r+'" title="نمایش همه اطلاعات" aria-label="نمایش همه اطلاعات"><i class="row-arr"></i></button></td></tr>';var ends=Array.isArray(p.endorsements)?p.endorsements:[];var losses=Array.isArray(p.losses)?p.losses:[];if(ends.length||losses.length){var lbl=[];if(ends.length)lbl.push('الحاقیه'+(ends.length>1?' '+faNum(ends.length):''));if(losses.length)lbl.push('خسارت'+(losses.length>1?' '+faNum(losses.length):''));var barCls='sum-bar'+(ends.length&&losses.length?' both':ends.length?' endo':' loss');h+='<tr class="sum-row '+z+'"><td colspan="'+(DCOLS.length+1)+'"><button type="button" class="'+barCls+'" data-sum="'+r+'"><span class="sum-lbl">'+lbl.join(' · ')+' <span class="sum-arrow">▾</span></span></button></td></tr>';h+='<tr class="sum-detail" id="sumDetail'+r+'" style="display:none"><td colspan="'+(DCOLS.length+1)+'">';for(var e=0;e<ends.length;e++){if(!ends[e])continue;h+='<div class="endo-block"><div class="endo-chips"><span class="endo-tag">🔶 الحاقیه</span><span class="endo-item"><b>نوع:</b> '+esc(fmt(ends[e].endorsementType))+'</span><span class="endo-item"><b>پلاک:</b> '+esc(fmt(ends[e].licensePlateNo))+'</span><span class="endo-item"><b>سند:</b> '+esc(fmt(ends[e].endorsementCompanyDocNo))+'</span></div></div>';}for(var l=0;l<losses.length;l++){if(!losses[l])continue;h+='<div class="loss-block"><div class="loss-chips"><span class="loss-tag">🔴 خسارت '+esc(fmt(losses[l].lossType))+'</span><span class="loss-item"><b>تاریخ حادثه:</b> '+esc(fmt(losses[l].accidentDate))+'</span><span class="loss-item"><b>تاریخ پرداخت:</b> '+esc(fmt(losses[l].paymentDate))+'</span><span class="loss-item"><b>سند:</b> '+esc(fmt(losses[l].lossCompanyDocNo))+'</span><span class="loss-item"><b>مبلغ:</b> '+esc(fmtAmt(losses[l].paidAmount))+'</span></div></div>';}h+='</td></tr>';}}h+="</tbody></table>";body.innerHTML=h;updateTabLabels();}
+function switchTab(name){if(!TAB_TITLES[name])return;currentTab=name;var btns=document.querySelectorAll("#tabs button");for(var i=0;i<btns.length;i++){btns[i].classList.toggle("active",btns[i].getAttribute("data-tab")===name);}var panels=document.querySelectorAll(".tab-panel");for(var j=0;j<panels.length;j++){panels[j].classList.toggle("active",panels[j].id==="panel-"+name);}$("status").textContent="تب "+TAB_TITLES[name]+" — آماده.";if(!_tabInit){_tabInit=true;render(resultsByTab[resultTab]||[]);}}
+function persist(){try{sessionStorage.setItem("sanhabTs",String(Date.now()));sessionStorage.setItem("sanhabInputs",JSON.stringify({motor:$("motorInput").value,chassis:$("chassisInput").value,vin:$("vinInput").value,plateLeft:$("plateLeft").value,plateMid:$("plateMid").value,plateRight:$("plateRight").value,plateSeri:$("plateSeri").value,bikeSeri:$("bikeSeri").value,bikeNumber:$("bikeNumber").value,national:$("nationalInput").value}));}catch(e){}}
 function setLoading(on){var ids=["motorBtn","chassisBtn","vinBtn","plateBtn","bikeBtn","nationalBtn"];for(var i=0;i<ids.length;i++){try{$(ids[i]).disabled=on;}catch(e){}}}
-function clearTab(k){resultsByTab[k]=[];resultsMeta[k]=null;persist();if(currentTab===k)render([]);else updateTabLabels();}
+function clearTab(k){for(var _x in resultsByTab){resultsByTab[_x]=[];resultsMeta[_x]=null;}render([]);}
 async function doInquiry(payload,label,tabKey,isRetry){
 var status=$("status");
 if(!isRetry)ensureFresh();
@@ -926,9 +926,8 @@ var txt=await resp.text();
 if(!resp.ok){throw new Error("خطای سرور "+resp.status+": "+txt.slice(0,600));}
 var json;try{json=JSON.parse(txt);}catch(e){throw new Error("پاسخ نامعتبر از سرور.");}
 var list=getPolicies(json);
-resultsByTab[tabKey]=list;resultsMeta[tabKey]=makeMeta(tabKey,payload,json,resp);persist();
-if(currentTab===tabKey){status.textContent=(list.length?"موفق. تب "+TAB_TITLES[tabKey]+" — تعداد: "+faNum(list.length):"نتیجه‌ای یافت نشد.");render(list);}
-else{status.textContent=(list.length?"موفق. نتیجه در تب "+TAB_TITLES[tabKey]+" ذخیره شد.":"نتیجه‌ای در تب "+TAB_TITLES[tabKey]+" یافت نشد.");updateTabLabels();}
+for(var _rk in resultsByTab){resultsByTab[_rk]=[];resultsMeta[_rk]=null;}resultsByTab[tabKey]=list;resultsMeta[tabKey]=makeMeta(tabKey,payload,json,resp);resultTab=tabKey;persist();
+status.textContent=(list.length?"موفق. "+TAB_TITLES[tabKey]+" — تعداد: "+faNum(list.length):"نتیجه‌ای یافت نشد.");render(list);
 setLoading(false);
 }catch(e){
 try{console.error(e);}catch(_){}if(e&&e.name==="AbortError"){status.textContent="سرور پاسخ نداد؛ دوباره تلاش کنید.";}else if(/Failed to fetch|Load failed|NetworkError/i.test(String(e&&e.message||e))){status.textContent="اتصال به سرور برقرار نشد؛ اینترنت را بررسی کنید.";}else{status.textContent="خطا: "+faMsg(e,"خطای نامشخص؛ دوباره تلاش کنید.");}
@@ -943,20 +942,21 @@ try{
 sbAccessToken="";["sbAccessToken","sanhabCentralToken","sanhabCred","sanhabNoAuto","sanhabTabResults","sanhabTabMeta","sanhabInputs"].forEach(function(k){localStorage.removeItem(k);});var _ts=+sessionStorage.getItem("sanhabTs")||0,_fresh=_ts&&(Date.now()-_ts<1800000);if(!_fresh){["sanhabTabResults","sanhabTabMeta","sanhabInputs","sanhabTs"].forEach(function(k){sessionStorage.removeItem(k);});}
 sbEmail=localStorage.getItem("sbEmail")||"";
 centralToken="";
-var sv=sessionStorage.getItem("sanhabTabResults");if(sv){var o=JSON.parse(sv);for(var k in resultsByTab){if(Array.isArray(o[k]))resultsByTab[k]=o[k];}}
-try{var mv=sessionStorage.getItem("sanhabTabMeta");if(mv){var mo=JSON.parse(mv);for(var mk in resultsMeta){if(mo&&mo[mk]&&(mo[mk].timestampSource==="api-body"||mo[mk].timestampSource==="http-date"))resultsMeta[mk]=mo[mk];}}}catch(_m){}var inp=sessionStorage.getItem("sanhabInputs");if(inp){var s=JSON.parse(inp);if(s.motor)$("motorInput").value=s.motor;if(s.chassis)$("chassisInput").value=s.chassis;if(s.vin)$("vinInput").value=s.vin;if(s.plateLeft)$("plateLeft").value=s.plateLeft;if(s.plateMid)$("plateMid").value=s.plateMid;if(s.plateRight)$("plateRight").value=s.plateRight;if(s.plateSeri)$("plateSeri").value=s.plateSeri;if(s.bikeSeri)$("bikeSeri").value=s.bikeSeri;if(s.bikeNumber)$("bikeNumber").value=s.bikeNumber;if(s.national)$("nationalInput").value=s.national;}
-var ct=localStorage.getItem("sanhabCurrentTab");if(ct&&TAB_TITLES[ct])currentTab=ct;
+sessionStorage.removeItem("sanhabTabResults");sessionStorage.removeItem("sanhabTabMeta");
+var inp=sessionStorage.getItem("sanhabInputs");if(inp){var s=JSON.parse(inp);if(s.motor)$("motorInput").value=s.motor;if(s.chassis)$("chassisInput").value=s.chassis;if(s.vin)$("vinInput").value=s.vin;if(s.plateLeft)$("plateLeft").value=s.plateLeft;if(s.plateMid)$("plateMid").value=s.plateMid;if(s.plateRight)$("plateRight").value=s.plateRight;if(s.plateSeri)$("plateSeri").value=s.plateSeri;if(s.bikeSeri)$("bikeSeri").value=s.bikeSeri;if(s.bikeNumber)$("bikeNumber").value=s.bikeNumber;if(s.national)$("nationalInput").value=s.national;}
+try{localStorage.removeItem("sanhabCurrentTab");}catch(_c){}
 }catch(e){}
 $("plateMid").addEventListener("input",function(e){var v=e.target.value.replace(/[ي]/g,"ی").replace(/[ك]/g,"ک");v=v.replace(/[^ابپتثجچحخدرزژسشصضطظعغفقکگلمنوهی]/g,"");if(v.length>1)v=v.slice(-1);e.target.value=v;});
 var numIds=["plateLeft","plateRight","plateSeri","bikeSeri","bikeNumber"];for(var n=0;n<numIds.length;n++){$(numIds[n]).addEventListener("input",function(e){e.target.value=faToEn(e.target.value).replace(/\D/g,"").slice(0,e.target.maxLength);});}
 switchTab(currentTab);
+_authBusy=!!(savedRT()||loadSaved().length);setTimeout(function(){_authBusy=false;updateAuthUI();},20000);
 updateAuthUI();
 setInterval(function(){updateAuthUI();if(!sbAccessToken){if(document.hidden)return;if(Date.now()-_lrt>60000){_lrt=Date.now();autoRelogin().then(updateAuthUI);}return;}if(msLeft()<REFRESH_MARGIN_MS)ensureFresh();},10000);
 window.addEventListener("online",function(){ensureFresh().then(updateAuthUI);});window.addEventListener("focus",function(){ensureFresh().then(updateAuthUI);});
 document.addEventListener("visibilitychange",function(){if(!document.hidden){ensureFresh().then(updateAuthUI);updateAuthUI();}});
 if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load("400 14px Vazirmatn","آ1A"),document.fonts.load("700 14px Vazirmatn","آ1A"),document.fonts.load("800 14px Vazirmatn","آ1A")]).then(function(){COLW=null;render(lastList);}).catch(function(){});}
 updateAuthUI();
-if(savedRT()||loadSaved().length){$("status").textContent="در حال ورود خودکار…";$("loginMsg").textContent="در حال ورود خودکار…";autoRelogin().then(function(ok){updateAuthUI();$("loginMsg").textContent="";$("status").textContent=ok?"ورود خودکار انجام شد ("+sbEmail+").":"ورود خودکار ناموفق بود؛ دکمه ورود را بزنید.";});}
+if(savedRT()||loadSaved().length){$("status").textContent="در حال ورود خودکار…";$("loginMsg").textContent="در حال ورود خودکار…";autoRelogin().catch(function(){return false;}).then(function(ok){_authBusy=false;updateAuthUI();if(!ok&&!sbAccessToken)openLogin();$("loginMsg").textContent="";$("status").textContent=ok?"ورود خودکار انجام شد ("+sbEmail+").":"ورود خودکار ناموفق بود؛ دکمه ورود را بزنید.";});}
 function applyTheme(d){document.body.classList.toggle("dark",d);$("themeBtn").textContent=d?"☀️ حالت روشن":"🌙 حالت تیره";}
 var isDark=false;try{isDark=localStorage.getItem("sanhabDark")==="1";}catch(err){}
 applyTheme(isDark);
