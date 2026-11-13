@@ -435,7 +435,8 @@ var SUPABASE_URL = "https://fiegkmvwgmmvgwonbicv.supabase.co";
 var SUPABASE_ANON_KEY = "sb_publishable_o2JrxJVXcmI-4400HJm7cA_fBNM29Cq";
 var TOKEN_KV_KEY = "sanhab_token";
 var SUPABASE_LOGIN_URL = SUPABASE_URL + "/auth/v1/token?grant_type=password";
-var INQUIRY_URL = SUPABASE_URL + "/functions/v1/inquiry";
+var SUPABASE_GET_VALUE_URL = SUPABASE_URL + "/functions/v1/get-value/" + encodeURIComponent(TOKEN_KV_KEY);
+var API_URL = "https://apigateway.pardisinsure.com/CoreInsurance/Sanhab/Policy/Inquiry/smart-inquiry";
 var centralToken = "";
 var sbAccessToken = "";
 var sbEmail = "";
@@ -877,7 +878,19 @@ try{rememberLogin(email,password);}catch(_r){}
 await refreshCentralToken(true);
 updateAuthUI();
 }
-async function refreshCentralToken(noRetry){ if(!sbAccessToken){if(!noRetry&&await autoRelogin())return centralToken;} if(!sbAccessToken) throw new Error("اول وارد حساب کاربری شوید."); centralToken="server";centralExp=0;_lastCentralRead=Date.now();return centralToken; } var _render0=render;render=function(list){_render0(list);fitCols();};
+async function refreshCentralToken(noRetry){
+if(!sbAccessToken){if(!noRetry&&await autoRelogin())return centralToken;} 
+if(!sbAccessToken) throw new Error("اول وارد حساب کاربری شوید.");
+var r=await fetchRetry(SUPABASE_GET_VALUE_URL,{method:"GET",headers:{"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+sbAccessToken,"Accept":"application/json"}},8000);
+if(r.status===401||r.status===403){if(!noRetry&&await autoRelogin())return centralToken;throw new Error("نشست شما منقضی شده؛ دوباره وارد شوید.");}
+var txt=await r.text();var j=null;try{j=JSON.parse(txt);}catch(e){throw new Error("پاسخ نامعتبر از سرور.");}
+var v=parseCentralToken(j);
+if(!v) throw new Error("دسترسی مرکزی تنظیم نشده؛ به سرگروه اطلاع دهید.");
+centralToken=v;centralExp=jwtExp(v);_lastCentralRead=Date.now();
+
+return v;
+}
+var _render0=render;render=function(list){_render0(list);fitCols();};
 function updateTabLabels(){var btns=document.querySelectorAll("#tabs button");for(var i=0;i<btns.length;i++){var k=btns[i].getAttribute("data-tab");var n=(resultsByTab[k]||[]).length;btns[i].textContent=n>0?TAB_TITLES[k]+" ("+faNum(n)+")":TAB_TITLES[k];}}
 function render(list){var body=$("body"),count=$("count");list=list||[];lastList=list;var _db=$("dlBtn");if(_db)_db.style.display=list.length?"":"none";count.textContent="تب "+TAB_TITLES[currentTab]+" — تعداد رکورد: "+faNum(list.length);if(!list.length){body.innerHTML='<div class="empty">'+(resultsMeta[currentTab]?'نتیجه‌ای برای این استعلام پیدا نشد.':'هنوز استعلامی در این تب انجام نشده است.')+'</div>';updateTabLabels();return;}var CW=colWidths();var h='<table><colgroup>';for(var q=0;q<CW.cols.length;q++)h+='<col style="width:'+(CW.cols[q]*100/CW.total).toFixed(3)+'%">';h+="</colgroup><thead><tr>";for(var i=0;i<DCOLS.length;i++)h+="<th"+(DCOLS[i].cls?' class="'+DCOLS[i].cls+'"':"")+">"+esc(DCOLS[i].title)+"</th>";h+='<th class="arr-col"></th></tr></thead><tbody>';for(var r=0;r<list.length;r++){var p=list[r];var ends0=Array.isArray(p.endorsements)?p.endorsements:[];var loss0=Array.isArray(p.losses)?p.losses:[];var z=(r%2?"z2":"z1");h+='<tr class="rec '+z+((ends0.length||loss0.length)?" has-sum":"")+'">';for(var c=0;c<DCOLS.length;c++){h+="<td"+(DCOLS[c].cls?' class="'+DCOLS[c].cls+'"':"")+">"+DCOLS[c].html(p)+"</td>";}h+='<td class="arr-col"><button type="button" class="row-arr-btn" data-idx="'+r+'" title="نمایش همه اطلاعات" aria-label="نمایش همه اطلاعات"><i class="row-arr"></i></button></td></tr>';var ends=Array.isArray(p.endorsements)?p.endorsements:[];var losses=Array.isArray(p.losses)?p.losses:[];if(ends.length||losses.length){var lbl=[];if(ends.length)lbl.push('الحاقیه'+(ends.length>1?' '+faNum(ends.length):''));if(losses.length)lbl.push('خسارت'+(losses.length>1?' '+faNum(losses.length):''));var barCls='sum-bar'+(ends.length&&losses.length?' both':ends.length?' endo':' loss');h+='<tr class="sum-row '+z+'"><td colspan="'+(DCOLS.length+1)+'"><button type="button" class="'+barCls+'" data-sum="'+r+'"><span class="sum-lbl">'+lbl.join(' · ')+' <span class="sum-arrow">▾</span></span></button></td></tr>';h+='<tr class="sum-detail" id="sumDetail'+r+'" style="display:none"><td colspan="'+(DCOLS.length+1)+'">';for(var e=0;e<ends.length;e++){if(!ends[e])continue;h+='<div class="endo-block"><div class="endo-chips"><span class="endo-tag">🔶 الحاقیه</span><span class="endo-item"><b>نوع:</b> '+esc(fmt(ends[e].endorsementType))+'</span><span class="endo-item"><b>پلاک:</b> '+esc(fmt(ends[e].licensePlateNo))+'</span><span class="endo-item"><b>سند:</b> '+esc(fmt(ends[e].endorsementCompanyDocNo))+'</span></div></div>';}for(var l=0;l<losses.length;l++){if(!losses[l])continue;h+='<div class="loss-block"><div class="loss-chips"><span class="loss-tag">🔴 خسارت '+esc(fmt(losses[l].lossType))+'</span><span class="loss-item"><b>تاریخ حادثه:</b> '+esc(fmt(losses[l].accidentDate))+'</span><span class="loss-item"><b>تاریخ پرداخت:</b> '+esc(fmt(losses[l].paymentDate))+'</span><span class="loss-item"><b>سند:</b> '+esc(fmt(losses[l].lossCompanyDocNo))+'</span><span class="loss-item"><b>مبلغ:</b> '+esc(fmtAmt(losses[l].paidAmount))+'</span></div></div>';}h+='</td></tr>';}}h+="</tbody></table>";body.innerHTML=h;updateTabLabels();}
 function switchTab(name){if(!TAB_TITLES[name])return;currentTab=name;var btns=document.querySelectorAll("#tabs button");for(var i=0;i<btns.length;i++){btns[i].classList.toggle("active",btns[i].getAttribute("data-tab")===name);}var panels=document.querySelectorAll(".tab-panel");for(var j=0;j<panels.length;j++){panels[j].classList.toggle("active",panels[j].id==="panel-"+name);}$("status").textContent="تب "+TAB_TITLES[name]+" — آماده.";render(resultsByTab[name]||[]);try{localStorage.setItem("sanhabCurrentTab",name);}catch(e){}}
@@ -896,26 +909,19 @@ try{await refreshCentralToken();}catch(e){var _em=String(e&&e.message||"");statu
 }
 setLoading(true);
 status.textContent="در حال استعلام بر اساس "+label+" …";
-if(centralToken&&Date.now()-_lastCentralRead>4000){try{await Promise.race([refreshCentralToken(true),new Promise(function(r){setTimeout(r,2500);})]);}catch(_f){}}
 try{
 var _t0=Date.now(),_tk=setInterval(function(){status.textContent="در حال استعلام بر اساس "+label+" … ("+faNum(Math.round((Date.now()-_t0)/1000))+" ثانیه)";},1000);
-var _ctl=new AbortController(),_tm=setTimeout(function(){_ctl.abort();},30000);var resp;try{resp=await fetch(INQUIRY_URL,{method:"POST",signal:_ctl.signal,headers:{"Content-Type":"application/json","Accept":"application/json","apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+sbAccessToken},body:JSON.stringify(payload)});}finally{clearTimeout(_tm);clearInterval(_tk);}
-var _he=resp.headers.get("x-sanhab-err")||"";
-if(_he){
-var _rn=(isRetry===true)?1:(isRetry|0);
-if(_he==="auth"){
-if(_rn<2){status.textContent="در حال ورود مجدد…";var _okl=false;try{_okl=await autoRelogin();}catch(_a){}if(_okl){setLoading(false);return doInquiry(payload,label,tabKey,_rn+1);}}
-setLoading(false);status.textContent="نشست شما منقضی شده؛ دوباره وارد شوید.";openLogin();return;
+var _send=async function(){var _ctl=new AbortController(),_tm=setTimeout(function(){_ctl.abort();},20000);try{return await fetch(API_URL,{method:"POST",signal:_ctl.signal,headers:{"Content-Type":"application/json","Accept":"application/json","Authorization":"Bearer "+centralToken},body:JSON.stringify(payload)});}finally{clearTimeout(_tm);}};
+var resp;
+try{
+resp=await _send();
+if(resp.status!==200){
+status.textContent="در حال دریافت توکن جدید و تلاش مجدد…";
+try{await refreshCentralToken();}catch(_e){setLoading(false);status.textContent=faMsg(_e,"دریافت توکن جدید ناموفق بود.");return;}
+resp=await _send();
 }
-if(_he==="upstream"){
-var _up=resp.headers.get("x-sanhab-up")||"";
-var _exp=(_up==="403")?"دسترسی شما مجاز نیست؛ به سرگروه اطلاع دهید.":"دسترسی شما منقضی شده؛ به سرگروه اطلاع دهید.";
-if(_rn<2&&_up!=="403"){status.textContent="در حال تجدید دسترسی و تلاش مجدد…";setLoading(false);return doInquiry(payload,label,tabKey,_rn+1);}
-setLoading(false);status.textContent=_exp;return;
-}
-setLoading(false);status.textContent="اتصال سرور به پردیس برقرار نشد؛ دوباره تلاش کنید.";return;
-}
-if(resp.status>=500){var _eb="";try{_eb=await resp.text();}catch(_){}try{console.error("Server error",resp.status,_eb.slice(0,600));}catch(_){}setLoading(false);status.textContent="خطای سرور ("+faNum(resp.status)+"). دوباره تلاش کنید؛ تکرار شد به سرگروه اطلاع دهید.";return;}
+}finally{clearInterval(_tk);}
+if(resp.status!==200){var _eb="";try{_eb=await resp.text();}catch(_){}try{console.error("Inquiry error",resp.status,_eb.slice(0,600));}catch(_){}setLoading(false);status.textContent="خطا "+faNum(resp.status)+": "+(_eb?_eb.slice(0,300):"بدون متن خطا");return;}
 var txt=await resp.text();
 if(!resp.ok){throw new Error("خطای سرور "+resp.status+": "+txt.slice(0,600));}
 var json;try{json=JSON.parse(txt);}catch(e){throw new Error("پاسخ نامعتبر از سرور.");}
@@ -945,9 +951,9 @@ $("plateMid").addEventListener("input",function(e){var v=e.target.value.replace(
 var numIds=["plateLeft","plateRight","plateSeri","bikeSeri","bikeNumber"];for(var n=0;n<numIds.length;n++){$(numIds[n]).addEventListener("input",function(e){e.target.value=faToEn(e.target.value).replace(/\D/g,"").slice(0,e.target.maxLength);});}
 switchTab(currentTab);
 updateAuthUI();
-setInterval(function(){updateAuthUI();if(!sbAccessToken){if(document.hidden)return;if(Date.now()-_lrt>60000){_lrt=Date.now();autoRelogin().then(updateAuthUI);}return;}if(msLeft()<REFRESH_MARGIN_MS)ensureFresh();if(Date.now()-_lastCentralRead>(document.hidden?15000:2500)&&!_cpoll){_cpoll=1;refreshCentralToken().catch(function(){}).then(function(){_cpoll=0;updateAuthUI();});}},3000);
-var _forceRead=function(){if(sbAccessToken&&!_cpoll){_cpoll=1;refreshCentralToken().catch(function(){}).then(function(){_cpoll=0;updateAuthUI();});}};window.addEventListener("online",function(){ensureFresh().then(updateAuthUI);_forceRead();});window.addEventListener("focus",function(){ensureFresh().then(updateAuthUI);_forceRead();});
-document.addEventListener("visibilitychange",function(){if(!document.hidden){ensureFresh().then(updateAuthUI);_forceRead();updateAuthUI();}});
+setInterval(function(){updateAuthUI();if(!sbAccessToken){if(document.hidden)return;if(Date.now()-_lrt>60000){_lrt=Date.now();autoRelogin().then(updateAuthUI);}return;}if(msLeft()<REFRESH_MARGIN_MS)ensureFresh();},10000);
+window.addEventListener("online",function(){ensureFresh().then(updateAuthUI);});window.addEventListener("focus",function(){ensureFresh().then(updateAuthUI);});
+document.addEventListener("visibilitychange",function(){if(!document.hidden){ensureFresh().then(updateAuthUI);updateAuthUI();}});
 if(document.fonts&&document.fonts.load){Promise.all([document.fonts.load("400 14px Vazirmatn","آ1A"),document.fonts.load("700 14px Vazirmatn","آ1A"),document.fonts.load("800 14px Vazirmatn","آ1A")]).then(function(){COLW=null;render(lastList);}).catch(function(){});}
 updateAuthUI();
 if(savedRT()||loadSaved().length){$("status").textContent="در حال ورود خودکار…";$("loginMsg").textContent="در حال ورود خودکار…";autoRelogin().then(function(ok){updateAuthUI();$("loginMsg").textContent="";$("status").textContent=ok?"ورود خودکار انجام شد ("+sbEmail+").":"ورود خودکار ناموفق بود؛ دکمه ورود را بزنید.";});}
