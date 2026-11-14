@@ -371,11 +371,12 @@ body.noauth.dark #savedLogins{border-color:#5b9bff}
 body.noauth .login-modal .lf{position:relative;z-index:1}
 body.noauth .login-modal .lf.open,body.noauth .login-modal .lf:first-of-type{z-index:20}
 body.noauth #savedLogins{z-index:30}
-.login-modal input{color:#222;-webkit-text-fill-color:currentColor}
-.login-modal input:focus{color:#222}
-body.dark .login-modal input,body.dark .login-modal input:focus{color:#e2e6ec;background:#10141a}
-body.noauth .login-modal input,body.noauth .login-modal input:focus{background:#10141a;color:#e2e6ec;border-color:#364253}
-body.noauth .login-modal input:focus{border-color:#5b9bff}
+.login-modal input,.login-modal input:read-only{background:#f8fafd;color:#222;-webkit-text-fill-color:#222;caret-color:#222;border-color:#d9e0ea}
+.login-modal input:focus{background:#fff;color:#222;-webkit-text-fill-color:#222;border-color:#2b7fff}
+.login-modal input::placeholder{color:#8a94a3;-webkit-text-fill-color:#8a94a3;opacity:1}
+body.dark .login-modal input,body.dark .login-modal input:read-only{background:#10141a;color:#e2e6ec;-webkit-text-fill-color:#e2e6ec;caret-color:#e2e6ec;border-color:#364253}
+body.dark .login-modal input:focus{background:#0e1218;color:#e2e6ec;-webkit-text-fill-color:#e2e6ec;border-color:#5b9bff}
+body.dark .login-modal input::placeholder{color:#7d8899;-webkit-text-fill-color:#7d8899}
 </style>
 </head>
 <body>
