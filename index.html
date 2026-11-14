@@ -371,6 +371,11 @@ body.noauth.dark #savedLogins{border-color:#5b9bff}
 body.noauth .login-modal .lf{position:relative;z-index:1}
 body.noauth .login-modal .lf.open,body.noauth .login-modal .lf:first-of-type{z-index:20}
 body.noauth #savedLogins{z-index:30}
+.login-modal input{color:#222;-webkit-text-fill-color:currentColor}
+.login-modal input:focus{color:#222}
+body.dark .login-modal input,body.dark .login-modal input:focus{color:#e2e6ec;background:#10141a}
+body.noauth .login-modal input,body.noauth .login-modal input:focus{background:#10141a;color:#e2e6ec;border-color:#364253}
+body.noauth .login-modal input:focus{border-color:#5b9bff}
 </style>
 </head>
 <body>
@@ -423,8 +428,8 @@ body.noauth #savedLogins{z-index:30}
 <div id="loginOverlay">
 <div class="login-modal">
 <h3>ورود به حساب کاربری</h3>
-<div class="lf"><input id="loginEmail" placeholder="ایمیل" autocomplete="off"><div id="savedLogins" style="display:none"></div></div>
-<div class="lf"><input id="loginPass" type="password" placeholder="رمز عبور" autocomplete="off"></div>
+<div class="lf"><input id="loginEmail" name="lx_user_field" type="text" placeholder="ایمیل" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly data-lpignore="true" data-1p-ignore="true" data-form-type="other"><div id="savedLogins" style="display:none"></div></div>
+<div class="lf"><input id="loginPass" name="lx_secret_field" type="text" placeholder="رمز عبور" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" readonly data-lpignore="true" data-1p-ignore="true" data-form-type="other" style="-webkit-text-security:disc;text-security:disc"></div>
 <div class="lrow"><button id="loginSubmit">ورود</button><button id="loginClose">بستن</button></div>
 <div id="loginMsg"></div>
 <div class="pwr">Powered by <b>Issuance Team</b></div>
@@ -450,7 +455,7 @@ async function fetchRetry(u,o,ms){for(var i=0;i<2;i++){try{var r=await fetchT(u,
 function faMsg(e,d){var m=e&&e.message?String(e.message):"";return /[\u0600-\u06FF]/.test(m)?m:d;}
 function fmtAmt(v){if(emp(v))return "—";var n=Number(String(v).replace(/[,٬]/g,""));return isNaN(n)?String(v):n.toLocaleString("fa-IR");}
 function normId(v,up){var t=faToEn(String(v||"")).replace(/[\s\u200c\u200d\u200e\u200f]+/g,"");return up?t.toUpperCase():t;}
-function saveSession(j){try{if(j.refresh_token)localStorage.setItem("sanhabRT",j.refresh_token);localStorage.setItem("sbEmail",sbEmail);["sanhabCred","sanhabNoAuto","sbAccessToken","sanhabCentralToken"].forEach(function(k){localStorage.removeItem(k);});}catch(e){}}
+function saveSession(j){try{if(j.refresh_token)localStorage.setItem("sanhabRT",j.refresh_token);["sanhabCred","sanhabNoAuto","sbAccessToken","sanhabCentralToken"].forEach(function(k){localStorage.removeItem(k);});}catch(e){}}
 function emp(v){return v===null||v===undefined||v==="";}
 function comb(y,pc){var a=[];if(!emp(y))a.push(y+" سال");if(!emp(pc))a.push(pc+"٪");return a.length?a.join(" - "):"";}
 var COLS=[
@@ -843,12 +848,12 @@ if(l===Infinity||l>=SESSION_WARN_MS){sb.style.display="none";}
 else{sb.style.display="";sb.className="sess-badge"+(l<=0?" exp":"");sb.textContent=l<=0?(_cen?"دسترسی مرکزی منقضی شد؛ به سرگروه اطلاع دهید":"نشست منقضی شد"):(_cen?"دسترسی مرکزی: ":"نشست: ")+faNum(Math.max(1,Math.ceil(l/60000)))+" دقیقه تا انقضا";sb.title="";}}
 }
 var SAVED_KEY="sanhabSavedLogins";
-function loadSaved(){try{var a=JSON.parse(localStorage.getItem(SAVED_KEY)||"[]");return Array.isArray(a)?a.filter(function(x){return x&&x.e&&x.p;}):[];}catch(e){return [];}}
-function storeSaved(a){try{localStorage.setItem(SAVED_KEY,JSON.stringify(a.slice(0,5)));}catch(e){}}
-function rememberLogin(e,p){var k=String(e).toLowerCase(),a=loadSaved().filter(function(x){return x.e.toLowerCase()!==k;});a.unshift({e:e,p:p});storeSaved(a);}
-function forgetLogin(e){var k=String(e).toLowerCase();storeSaved(loadSaved().filter(function(x){return x.e.toLowerCase()!==k;}));}
+function loadSaved(){return [];}
+function storeSaved(a){}
+function rememberLogin(e,p){}
+function forgetLogin(e){}
 function hideSaved(){$("savedLogins").style.display="none";var l=document.querySelectorAll(".login-modal .lf");for(var i=0;i<l.length;i++)l[i].classList.remove("open");}
-function renderSaved(inp){
+function renderSaved(inp){hideSaved();return;
 if(!inp||!inp.id)inp=$("loginEmail");
 var box=$("savedLogins"),q=($("loginEmail").value||"").trim().toLowerCase();
 var all=loadSaved(),ex=all.some(function(x){return x.e.toLowerCase()===q;});
@@ -866,7 +871,7 @@ box.appendChild(d);
 var wrap=inp.parentNode;hideSaved();wrap.appendChild(box);wrap.classList.add("open");box.style.display="";
 }
 function pickSaved(x){$("loginEmail").value=x.e;$("loginPass").value=x.p;hideSaved();doLogin(true);}
-function openLogin(){$("loginMsg").textContent="";if(sbEmail)$("loginEmail").value=sbEmail;$("loginPass").value="";$("loginOverlay").style.display="flex";setTimeout(function(){try{$("loginEmail").focus();}catch(e){}renderSaved($("loginEmail"));},50);}
+function openLogin(){$("loginMsg").textContent="";$("loginEmail").value="";$("loginPass").value="";$("loginOverlay").style.display="flex";setTimeout(function(){try{$("loginEmail").focus();}catch(e){}renderSaved($("loginEmail"));},50);}
 function closeLogin(){if(document.body.classList.contains("noauth"))return;$("loginOverlay").style.display="none";hideSaved();}
 async function supabaseLogin(email,password){
 var r=await fetch(SUPABASE_LOGIN_URL,{method:"POST",headers:{"apikey":SUPABASE_ANON_KEY,"Content-Type":"application/json"},body:JSON.stringify({email:email,password:password})});
@@ -940,7 +945,7 @@ document.addEventListener("DOMContentLoaded",function(){
 var btns=document.querySelectorAll("#tabs button");for(var i=0;i<btns.length;i++){btns[i].onclick=(function(b){return function(){switchTab(b.getAttribute("data-tab"));};})(btns[i]);}
 try{
 sbAccessToken="";["sbAccessToken","sanhabCentralToken","sanhabCred","sanhabNoAuto","sanhabTabResults","sanhabTabMeta","sanhabInputs"].forEach(function(k){localStorage.removeItem(k);});var _ts=+sessionStorage.getItem("sanhabTs")||0,_fresh=_ts&&(Date.now()-_ts<1800000);if(!_fresh){["sanhabTabResults","sanhabTabMeta","sanhabInputs","sanhabTs"].forEach(function(k){sessionStorage.removeItem(k);});}
-sbEmail=localStorage.getItem("sbEmail")||"";
+sbEmail="";try{["sbEmail","sanhabSavedLogins"].forEach(function(k){localStorage.removeItem(k);});}catch(_p){}
 centralToken="";
 sessionStorage.removeItem("sanhabTabResults");sessionStorage.removeItem("sanhabTabMeta");
 var inp=sessionStorage.getItem("sanhabInputs");if(inp){var s=JSON.parse(inp);if(s.motor)$("motorInput").value=s.motor;if(s.chassis)$("chassisInput").value=s.chassis;if(s.vin)$("vinInput").value=s.vin;if(s.plateLeft)$("plateLeft").value=s.plateLeft;if(s.plateMid)$("plateMid").value=s.plateMid;if(s.plateRight)$("plateRight").value=s.plateRight;if(s.plateSeri)$("plateSeri").value=s.plateSeri;if(s.bikeSeri)$("bikeSeri").value=s.bikeSeri;if(s.bikeNumber)$("bikeNumber").value=s.bikeNumber;if(s.national)$("nationalInput").value=s.national;}
@@ -996,7 +1001,8 @@ $("loginSubmit").disabled=false;
 window.doLogin=doLogin;
 $("loginSubmit").onclick=function(){doLogin(false);};
 ["loginEmail","loginPass"].forEach(function(id){var el=$(id);el.addEventListener("focus",function(){renderSaved(el);});el.addEventListener("click",function(){renderSaved(el);});el.addEventListener("blur",function(){setTimeout(function(){var a=document.activeElement;if(a!==$("loginEmail")&&a!==$("loginPass"))hideSaved();},200);});});
-$("loginEmail").addEventListener("input",function(){renderSaved($("loginEmail"));});
+(function(){var ids=["loginEmail","loginPass"];ids.forEach(function(id){var el=$(id);var un=function(){el.removeAttribute("readonly");};el.addEventListener("focus",un);el.addEventListener("pointerdown",un);el.addEventListener("touchstart",un,{passive:true});});
+var pw=$("loginPass");if(!(window.CSS&&CSS.supports&&(CSS.supports("-webkit-text-security","disc")||CSS.supports("text-security","disc")))){pw.type="password";pw.setAttribute("autocomplete","new-password");}})();
 $("loginPass").addEventListener("keydown",function(e){if(e.key==="Enter")$("loginSubmit").click();});
 $("loginEmail").addEventListener("keydown",function(e){if(e.key==="Enter")$("loginSubmit").click();});
 $("motorBtn").onclick=function(){clearTab("motor");var v=normId($("motorInput").value,false);$("motorInput").value=v;if(!v){$("status").textContent="شماره موتور را وارد کنید.";return;}persist();doInquiry({motorNo:v},"شماره موتور","motor",false);};
